@@ -1,0 +1,243 @@
+﻿@inject IndexedDBManager DbManager
+@inject IJSRuntime JS
+@page "/indexeddb"
+@using TG.Blazor.IndexedDB
+
+<MudText Typo="@Typo.h4"> Verwendeter Speicherplatz: @StorageQuoate MB</MudText>
+
+<MudContainer>
+    <MudGrid>
+        <MudItem xs="6">
+            <MudCard Elevation="3" Class="ma-2 pa-2">
+                <MudCardHeader>
+                    <MudText>Suchen</MudText>
+                </MudCardHeader>
+                <MudGrid>
+                    <MudItem Class="ma-2" xs="12">
+                        <MudTextField Label="Datensatz suchen (GUID)"
+                                      Variant="Variant.Text"
+                                      @bind-Value="SearchID"></MudTextField>
+                    </MudItem>
+                    <MudItem Class="ma-2" xs="12">
+                        <MudButton FullWidth="true"
+                                   Variant="Variant.Filled"
+                                   disabled="@(string.IsNullOrEmpty(SearchID))"
+                                   @onclick="IncrementCount">Datensatz suchen</MudButton>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        @if (SearchedPerson != null)
+                        {
+                            <MudText>Suchergebnis:</MudText>
+                            <MudTextField Label="Nachname" @bind-Value="@SearchedPerson.LastName"></MudTextField>
+                            <MudTextField Label="Vorname" @bind-Value="@SearchedPerson.FirstName"></MudTextField>
+                            <MudTextField Label="ID" @bind-Value="@SearchedPerson.Id"></MudTextField>
+
+                            @if (SearchedPerson.Img != null)
+                            {
+                                <MudImage 
+                                    Fluid="true"
+                                    Src="@GetImageDataURL(SearchedPerson.Img)"></MudImage>
+                            }
+                        }
+                    </MudItem>
+                </MudGrid>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="6">
+            <MudCard Elevation="3" Class="ma-2 pa-2">
+                <MudCardHeader>
+                    <MudText>Hinzufügen</MudText>
+                </MudCardHeader>
+                <MudItem Class="ma-2" Style="display:flex;justify-content:center" xs="12">
+                    <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
+                        <ButtonTemplate>
+                            <MudFab Disabled="@(IsAddingRows)"
+                                    HtmlTag="label"
+                                    Color="Color.Primary"
+                                    StartIcon="@Icons.Material.Filled.Image"
+                                    Label="Datei hochladen"
+                                    for="@context.Id" />
+                        </ButtonTemplate>
+                    </MudFileUpload>
+                </MudItem>
+                <MudItem Class="ma-2" xs="12">
+                    <MudButton FullWidth="true"
+                               Variant="Variant.Filled"
+                               Disabled="@(IsAddingRows)"
+                               class="btn btn-primary"
+                               @onclick="AddRows">
+
+                        @if (IsAddingRows)
+                        {
+                            <MudProgressCircular Indeterminate="true"></MudProgressCircular>
+                        }
+
+                        Datensätze hinzufügen
+                    </MudButton>
+                </MudItem>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12">
+
+            <MudCard Elevation="3" Class="ma-2 pa-2">
+                <MudCardHeader>
+                    <MudText>Log</MudText>
+                </MudCardHeader>
+                <MudText>@message</MudText>
+            </MudCard>
+
+
+        </MudItem>
+    </MudGrid>
+
+
+
+</MudContainer>
+
+
+
+
+    @code {
+
+    private string GetImageDataURL(byte[] data)
+    {
+        return string.Format("data:image/bmp;base64,{0}", Convert.ToBase64String(data));
+    }
+
+    public bool IsAddingRows { get; set; }
+
+    public long StorageQuoate { get; set; } = -1;
+
+    public Person? SearchedPerson { get; set; }
+
+    public string SearchID { get; set; } = "001a1f3f-ee72-4347-b2c9-747e29823faa";
+    IBrowserFile? file;
+    private MarkupString message;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            AddLine("start get one");
+            SearchedPerson = await DbManager.GetRecordById<Guid, Person>("Employees", Guid.Parse(SearchID));
+            AddLine("end get one");
+
+            RefreshStorageQuota();
+        }
+    }
+
+    private async Task RefreshStorageQuota()
+    {
+        StorageQuoate = await JS.InvokeAsync<long>("storageQuota");
+
+        StateHasChanged();
+    }
+
+
+    private void UploadFiles(IBrowserFile file)
+    {
+        this.file = file;
+
+    }
+
+    private void AddLine(string msg)
+    {
+        message = new MarkupString(message + msg + " " + DateTime.Now.ToString() + "<br/>");
+    }
+
+
+    private async void AddRows()
+    {
+        using MemoryStream ms = new MemoryStream();
+        if (file != null)
+        {
+            await file.OpenReadStream().CopyToAsync(ms);
+        }
+        AddLine("start");
+        IsAddingRows = true;
+        StateHasChanged();
+
+
+        for (int i = 0; i < 100000; i++)
+        {
+            var newRecord = new StoreRecord<Person>
+                {
+                    Storename = "Employees",
+                    Data = new Person()
+                    {
+                        Id = Guid.NewGuid(),
+                        FirstName = $"Firstname {i}",
+                        LastName = $"Lastname {i}",
+                        Img = ms.Length > 0 ? ms.ToArray() : null
+                    }
+                };
+
+            if (i % 1000 == 0)
+            {
+                AddLine($"verarbeitet: {i}");
+                await RefreshStorageQuota();
+            }
+
+            await DbManager.AddRecord(newRecord);
+
+            newRecord.Data.Img = null;
+        }
+
+        AddLine("added");
+        IsAddingRows = false;
+        StateHasChanged();
+
+
+
+        // var persons = await DbManager.GetRecords<Person>("Employees");
+        // AddLine("get all");
+        // StateHasChanged();
+    }
+
+    private async void IncrementCount()
+    {
+        // using MemoryStream ms = new MemoryStream();
+        // await file.OpenReadStream().CopyToAsync(ms);
+
+        // AddLine("start");
+        // StateHasChanged();
+        // for (int i = 0; i < 100000; i++)
+        // {
+
+
+        //     var newRecord = new StoreRecord<Person>
+        //         {
+        //             Storename = "Employees",
+        //             Data = new Person()
+        //             {
+        //                 Id = Guid.NewGuid(),
+        //                 FirstName = $"Firstname {i}",
+        //                 LastName = $"Lastname {i}",
+        //                 Img = ms.ToArray()
+        //             }
+        //         };
+
+        //     await DbManager.AddRecord(newRecord);
+        //     // AddLine($"add {i}");
+        //     StateHasChanged();
+
+        // }
+
+        // AddLine("added");
+        // StateHasChanged();
+
+
+
+        // var persons = await DbManager.GetRecords<Person>("Employees");
+        // AddLine("get all");
+        // StateHasChanged();
+
+        AddLine("start get one");
+        SearchedPerson = await DbManager.GetRecordById<Guid, Person>("Employees", Guid.Parse(SearchID));
+        AddLine("end get one");
+        StateHasChanged();
+
+
+    }
+}
