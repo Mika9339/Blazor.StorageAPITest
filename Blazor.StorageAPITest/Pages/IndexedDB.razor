@@ -35,9 +35,8 @@
 
                             @if (SearchedPerson.Img != null)
                             {
-                                <MudImage 
-                                    Fluid="true"
-                                    Src="@GetImageDataURL(SearchedPerson.Img)"></MudImage>
+                                <MudImage Fluid="true"
+                                          Src="@GetImageDataURL(SearchedPerson.Img)"></MudImage>
                             }
                         }
                     </MudItem>
@@ -85,15 +84,15 @@
                     <MudText>Log</MudText>
                 </MudCardHeader>
                 <MudText>@message</MudText>
-            </MudCard>
+                </MudCard>
 
 
-        </MudItem>
-    </MudGrid>
+            </MudItem>
+        </MudGrid>
 
 
 
-</MudContainer>
+    </MudContainer>
 
 
 
@@ -161,17 +160,11 @@
 
         for (int i = 0; i < 100000; i++)
         {
-            var newRecord = new StoreRecord<Person>
-                {
-                    Storename = "Employees",
-                    Data = new Person()
-                    {
-                        Id = Guid.NewGuid(),
-                        FirstName = $"Firstname {i}",
-                        LastName = $"Lastname {i}",
-                        Img = ms.Length > 0 ? ms.ToArray() : null
-                    }
-                };
+            var newRecord = new StoreRecord<Artikel>
+            {
+                Storename = "Artikel",
+                Data = Artikel.GenerateRandom(ms.ToArray())
+            };
 
             if (i % 1000 == 0)
             {
@@ -181,7 +174,7 @@
 
             await DbManager.AddRecord(newRecord);
 
-            newRecord.Data.Img = null;
+            newRecord.Data.Image = null;
         }
 
         AddLine("added");
@@ -197,44 +190,8 @@
 
     private async void IncrementCount()
     {
-        // using MemoryStream ms = new MemoryStream();
-        // await file.OpenReadStream().CopyToAsync(ms);
-
-        // AddLine("start");
-        // StateHasChanged();
-        // for (int i = 0; i < 100000; i++)
-        // {
-
-
-        //     var newRecord = new StoreRecord<Person>
-        //         {
-        //             Storename = "Employees",
-        //             Data = new Person()
-        //             {
-        //                 Id = Guid.NewGuid(),
-        //                 FirstName = $"Firstname {i}",
-        //                 LastName = $"Lastname {i}",
-        //                 Img = ms.ToArray()
-        //             }
-        //         };
-
-        //     await DbManager.AddRecord(newRecord);
-        //     // AddLine($"add {i}");
-        //     StateHasChanged();
-
-        // }
-
-        // AddLine("added");
-        // StateHasChanged();
-
-
-
-        // var persons = await DbManager.GetRecords<Person>("Employees");
-        // AddLine("get all");
-        // StateHasChanged();
-
         AddLine("start get one");
-        SearchedPerson = await DbManager.GetRecordById<Guid, Person>("Employees", Guid.Parse(SearchID));
+        SearchedPerson = await DbManager.GetRecordById<string, Person>("Artikel", SearchID);
         AddLine("end get one");
         StateHasChanged();
 

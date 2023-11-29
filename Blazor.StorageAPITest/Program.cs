@@ -16,19 +16,17 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.
 builder.Services.AddIndexedDB(dbStore =>
 {
     dbStore.DbName = "TheFactory"; //example name
-    dbStore.Version = 1;
+    dbStore.Version = 2;
 
     dbStore.Stores.Add(new StoreSchema
     {
-        Name = "Employees",
+        Name = "Artikel",
         PrimaryKey = new IndexSpec { Name = "id", KeyPath = "id", Auto = true },
-        Indexes = new List<IndexSpec>
-                    {
-                        new IndexSpec{Name="firstName", KeyPath = "firstName", Auto=false},
-                        new IndexSpec{Name="lastName", KeyPath = "lastName", Auto=false},
-                        new IndexSpec{Name="img", KeyPath = "img", Auto=false},
+        Indexes = new List<IndexSpec>()
+        {
+            new IndexSpec{ Name = "artikelnr", KeyPath="artikelNr"}
+        }
 
-                    }
     });
     dbStore.Stores.Add(new StoreSchema
     {
