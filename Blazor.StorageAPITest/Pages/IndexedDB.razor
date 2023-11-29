@@ -14,7 +14,7 @@
                 </MudCardHeader>
                 <MudGrid>
                     <MudItem Class="ma-2" xs="12">
-                        <MudTextField Label="Datensatz suchen (GUID)"
+                        <MudTextField Label="Datensatz suchen"
                                       Variant="Variant.Text"
                                       @bind-Value="SearchID"></MudTextField>
                     </MudItem>
@@ -26,17 +26,17 @@
                     </MudItem>
 
                     <MudItem xs="12">
-                        @if (SearchedPerson != null)
+                        @if (SearchedValue != null)
                         {
                             <MudText>Suchergebnis:</MudText>
-                            <MudTextField Label="Nachname" @bind-Value="@SearchedPerson.LastName"></MudTextField>
-                            <MudTextField Label="Vorname" @bind-Value="@SearchedPerson.FirstName"></MudTextField>
-                            <MudTextField Label="ID" @bind-Value="@SearchedPerson.Id"></MudTextField>
+                            <MudTextField Label="Artikelnr" @bind-Value="@SearchedValue.ArtikelNr"></MudTextField>
+                            <MudTextField Label="Barcode" @bind-Value="@SearchedValue.Barcode"></MudTextField>
+                            <MudTextField Label="Preis" @bind-Value="@SearchedValue.Preis"></MudTextField>
 
-                            @if (SearchedPerson.Img != null)
+                            @if (SearchedValue.Image != null)
                             {
                                 <MudImage Fluid="true"
-                                          Src="@GetImageDataURL(SearchedPerson.Img)"></MudImage>
+                                          Src="@GetImageDataURL(SearchedValue.Image)"></MudImage>
                             }
                         }
                     </MudItem>
@@ -108,7 +108,7 @@
 
     public long StorageQuoate { get; set; } = -1;
 
-    public Person? SearchedPerson { get; set; }
+    public Artikel? SearchedValue { get; set; }
 
     public string SearchID { get; set; } = "001a1f3f-ee72-4347-b2c9-747e29823faa";
     IBrowserFile? file;
@@ -118,10 +118,6 @@
     {
         if (firstRender)
         {
-            AddLine("start get one");
-            SearchedPerson = await DbManager.GetRecordById<Guid, Person>("Employees", Guid.Parse(SearchID));
-            AddLine("end get one");
-
             RefreshStorageQuota();
         }
     }
@@ -161,10 +157,10 @@
         for (int i = 0; i < 100000; i++)
         {
             var newRecord = new StoreRecord<Artikel>
-            {
-                Storename = "Artikel",
-                Data = Artikel.GenerateRandom(ms.ToArray())
-            };
+                {
+                    Storename = "Artikel",
+                    Data = Artikel.GenerateRandom(ms.ToArray())
+                };
 
             if (i % 1000 == 0)
             {
@@ -191,7 +187,14 @@
     private async void IncrementCount()
     {
         AddLine("start get one");
-        SearchedPerson = await DbManager.GetRecordById<string, Person>("Artikel", SearchID);
+        SearchedValue = await DbManager.GetRecordByIndex<string, Artikel>(
+        new StoreIndexQuery<string>()
+            {
+                IndexName = "artikelnr",
+                QueryValue = SearchID,
+                Storename = "Artikel",
+                AllMatching = true
+            });
         AddLine("end get one");
         StateHasChanged();
 
