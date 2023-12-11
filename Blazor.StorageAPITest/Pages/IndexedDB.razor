@@ -3,9 +3,12 @@
 @page "/indexeddb"
 @using TG.Blazor.IndexedDB
 
-<MudText Typo="@Typo.h4"> Verwendeter Speicherplatz: @StorageQuoate MB</MudText>
-
 <MudContainer>
+
+    <MudText Typo="@Typo.h4"> Verwendeter Speicherplatz: @StorageQuoate MB</MudText>
+
+    <MudButton OnClick="StoragePersist">Persist Storage</MudButton>
+
     <MudGrid>
         <MudItem xs="6">
             <MudCard Elevation="3" Class="ma-2 pa-2">
@@ -127,6 +130,11 @@
         StorageQuoate = await JS.InvokeAsync<long>("storageQuota");
 
         StateHasChanged();
+    }
+
+    private async Task StoragePersist()
+    {
+        await JS.InvokeVoidAsync("storagePersist");
     }
 
 
